@@ -7,36 +7,40 @@
 
   <!-- SEO Básico -->
   <title>Herramientas PDF Gratis — Unir, Dividir y Comprimir PDF Online</title>
-  <meta name="description" content="Une varios PDF en un solo documento, extrae rangos de páginas o reduce el peso de tus archivos al instante. Rápido, gratuito y tus archivos se procesan en tu navegador sin subirse a servidores.">
+  <meta name="description" content="Une, divide y comprime PDF gratis. Tus archivos se procesan en tu navegador y no se suben a ningún servidor.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#1f4fd8">
   <link rel="canonical" href="https://utilidades-pdf.dario5045a.workers.dev/">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📄%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%84%3C/text%3E%3C/svg%3E">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_ES">
   <meta property="og:site_name" content="Herramientas PDF">
   <meta property="og:url" content="https://utilidades-pdf.dario5045a.workers.dev/">
-  <meta property="og:title" content="Herramientas PDF Gratis — Une y Divide tus Documentos al Instante">
-  <meta property="og:description" content="Combina múltiples archivos PDF en el orden que elijas o extrae páginas específicas en segundos. Procesamiento local en tu navegador.">
+  <meta property="og:title" content="Herramientas PDF Gratis — Une, Divide y Comprime tus Documentos">
+  <meta property="og:description" content="Une varios PDF, extrae páginas o reduce el peso de tus archivos. Todo se procesa en tu navegador.">
   <meta property="og:image" content="https://utilidades-pdf.dario5045a.workers.dev/preview-pdf.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Herramientas PDF: unir, dividir y comprimir">
 
   <!-- Twitter / X Cards -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Herramientas PDF Gratis — Une y Divide tus Documentos al Instante">
-  <meta name="twitter:description" content="Combina múltiples archivos PDF o extrae páginas específicas en segundos. Rápido, seguro y directamente en tu navegador.">
+  <meta name="twitter:title" content="Herramientas PDF Gratis — Une, Divide y Comprime tus Documentos">
+  <meta name="twitter:image" content="https://utilidades-pdf.dario5045a.workers.dev/preview-pdf.png">
+  <meta name="twitter:description" content="Une varios PDF, extrae páginas o reduce el peso de tus archivos. Todo se procesa en tu navegador.">
 
   <!-- Estilos (Autohospedados / Locales para máxima privacidad en la UE) -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- pdf-lib (SRI), pdf.js (SRI) y JSZip (SRI) vía CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha512-z8IYLHO8bTgFqj+yrPyIJnzBD771hCWZAKB3w5w+Z6aG0z8/j43zVwH9c+6c7/F9O4S1+4S0c9XG+3k6p9q9A==" crossorigin="anonymous" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-qjUBsTjR6fLwT4u5QZz1qV4sK8/yY4aQ8qLwK0G8l7u5S7+4r1Q+q9wX8+w5j6q0w7Z4q0s5R6w0w==" crossorigin="anonymous" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd2lO1M9q1e2Z2kY8/w6o4l7u3Q5s9o4W2V9e4l7u3Q5s9o4W2V9e4l7u3Q5s9o4W2V9e4l7u3Q5s9o4W==" crossorigin="anonymous" defer></script>
+  <!-- Librerías autohospedadas (sin CDN: más privacidad, sin hashes SRI que mantener) -->
+  <script src="/vendor/pdf-lib.min.js" defer></script>
+  <script src="/vendor/pdf.min.js" defer></script>
+  <script src="/vendor/jszip.min.js" defer></script>
   <script src="app.js" defer></script>
 
-  <!-- JSON-LD Estructurado (WebApplication y FAQPage) -->
+  <!-- JSON-LD Estructurado (WebApplication) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -54,30 +58,6 @@
     "description": "Une, divide y comprime archivos PDF de forma gratuita y directamente en tu navegador web."
   }
   </script>
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "¿Es seguro utilizar estas herramientas PDF? ¿Mis archivos son privados?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Sí. Todo el procesamiento de los documentos se realiza de forma local directamente en tu navegador web mediante JavaScript. Tus archivos no se suben a nuestros servidores."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "¿Cómo puedo unir varios archivos PDF y cambiar su orden?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Selecciona la pestaña «Unir PDF» y carga tus documentos. Una vez listados, puedes utilizar los botones de flecha (↑ y ↓) en cada archivo para colocarlos en el orden que prefieras."
-        }
-      }
-    ]
-  }
-  </script>
 </head>
 <body>
 
@@ -93,8 +73,8 @@
       <div class="ad-slot-content">
         <!-- BEGIN AADS AD UNIT 2462574 -->
 
-<div id="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
-          <iframe data-aa='2462574' src='//acceptable.a-ads.com/2462574/?size=Adaptive'
+<div class="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
+          <iframe data-aa='2462574' src='https://acceptable.a-ads.com/2462574/?size=Adaptive' title='Publicidad'
                             style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
         </div>
 
@@ -168,7 +148,7 @@
           </label>
           <div class="field" id="campo-rango">
             <label for="rango">Páginas</label>
-            <input type="text" id="rango" placeholder="Ejemplo: 1-3, 5, 8-10">
+            <input type="text" id="rango" placeholder="Ejemplo: 1-3, 5, 8-10" autocomplete="off" inputmode="text">
           </div>
 
           <label class="option">
@@ -275,8 +255,8 @@
       <div class="ad-slot-content">
         <!-- BEGIN AADS AD UNIT 2462575 -->
 
-<div id="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
-          <iframe data-aa='2462575' src='//acceptable.a-ads.com/2462575/?size=Adaptive'
+<div class="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
+          <iframe data-aa='2462575' src='https://acceptable.a-ads.com/2462575/?size=Adaptive' title='Publicidad' loading='lazy'
                             style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
         </div>
 

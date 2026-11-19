@@ -19,6 +19,7 @@
     MAX_ARCHIVOS_UNIR: 20,                     // Máximo 20 archivos en cola
     MAX_PAGINAS_DOCUMENTO: 500,                // Límite de páginas para evitar agotamiento de RAM
     MAX_ARCHIVOS_DESCARGA_INDIVIDUAL: 50,      // Evita bloqueo del navegador al descargar página por página
+    MAX_PIXELES_CANVAS: 16000000,              // Safari iOS falla por encima de ~16,7 M píxeles por canvas
   };
 
   // Firma binaria oficial de la especificación PDF: "%PDF-" (0x25 0x50 0x44 0x46 0x2D)
@@ -81,7 +82,7 @@
       };
     }
 
-    const mimesPermitidos = new Set(['application/pdf', 'application/x-pdf', '']);
+    const mimesPermitidos = new Set(['application/pdf', 'application/x-pdf', 'application/octet-stream', '']);
     if (!mimesPermitidos.has(file.type)) {
       return {
         valido: false,
@@ -123,7 +124,7 @@
         };
       }
 
-      const inicioCola = Math.max(0, file.size - 2048);
+      const inicioCola = Math.max(0, file.size - 65536);
       const colaBuffer = await file.slice(inicioCola, file.size).arrayBuffer();
       const textoCola = new TextDecoder('latin1').decode(new Uint8Array(colaBuffer));
 
@@ -217,6 +218,13 @@
   const statusUnir = document.getElementById('status-unir');
 
   let archivosSeleccionados = [];
+  let ocupadoUnir = false;
+
+  function bloquearUnir(valor) {
+    ocupadoUnir = valor;
+    inputUnir.disabled = valor;
+    listUnir.inert = valor;
+  }
 
   function setStatusUnir(mensaje, tipo = 'normal') {
     asignarTextoSeguro(statusUnir, mensaje, 260);
@@ -371,17 +379,20 @@
       return;
     }
 
+    if (ocupadoUnir) return;
     setButtonLoading(btnUnir, true, 'Uniendo archivos...', 'Unir archivos');
+    bloquearUnir(true);
+    const cola = [...archivosSeleccionados];
     setStatusUnir('Combinando y optimizando documentos...', 'loading');
     await esperarRenderizado();
 
     try {
       const pdfFinal = await PDFDocument.create();
-      const total = archivosSeleccionados.length;
+      const total = cola.length;
       let paginasAcumuladas = 0;
 
       for (let i = 0; i < total; i++) {
-        const archivo = archivosSeleccionados[i];
+        const archivo = cola[i];
         const nombreSeguro = sanitizarTexto(archivo.name, 80);
         setStatusUnir(`Procesando archivo ${i + 1} de ${total}: ${nombreSeguro}...`, 'loading');
         await esperarRenderizado();
@@ -414,6 +425,7 @@
         : 'Ocurrió un error al procesar uno de los PDF (puede estar dañado, malformado o protegido con contraseña).';
       setStatusUnir(mensaje, 'error');
     } finally {
+      bloquearUnir(false);
       setButtonLoading(btnUnir, false, '', 'Unir archivos');
       btnUnir.disabled = archivosSeleccionados.length < 2;
     }
@@ -435,6 +447,13 @@
     totalPaginas: 0,
   };
 
+  function bloquearDividir(valor) {
+    inputDividir.disabled = valor;
+    listDividir.inert = valor;
+    const opciones = document.querySelector('#panel-dividir .options');
+    if (opciones) opciones.disabled = valor;
+  }
+
   function setStatusDividir(mensaje, tipo = 'normal') {
     asignarTextoSeguro(statusDividir, mensaje, 260);
     statusDividir.classList.toggle('is-error', tipo === 'error');
@@ -447,14 +466,17 @@
   }
 
   function parsearRangoPaginas(textoRango, totalPaginas) {
-    // Si escriben más de 120 caracteres, se trunca y se usa un mensaje de error claro sin confundir
-    const entradaLimpia = sanitizarTexto(textoRango, 120);
+    const crudo = String(textoRango ?? '');
+    if (crudo.length > 400) {
+      throw new LimiteError('El rango es demasiado largo. Simplifica la lista de páginas (ej. 1-50, 60).');
+    }
+    const entradaLimpia = sanitizarTexto(crudo, 400);
     if (!entradaLimpia) {
-      throw new Error('Ingresa un rango de páginas (ejemplo: 1-3, 5).');
+      throw new LimiteError('Ingresa un rango de páginas (ejemplo: 1-3, 5).');
     }
 
     if (!/^[\d,\-\s]+$/.test(entradaLimpia)) {
-      throw new Error('Formato no válido. Usa únicamente números, guiones y comas (ej. 1-3, 5).');
+      throw new LimiteError('Formato no válido. Usa únicamente números, guiones y comas (ej. 1-3, 5).');
     }
 
     const segmentos = entradaLimpia.split(',');
@@ -467,17 +489,17 @@
       if (parte.includes('-')) {
         const limites = parte.split('-').map((n) => n.trim());
         if (limites.length !== 2 || !/^\d+$/.test(limites[0]) || !/^\d+$/.test(limites[1])) {
-          throw new Error(`Formato inválido en "${parte}". Usa el formato inicio-fin (ej. 2-5).`);
+          throw new LimiteError(`Formato inválido en "${parte}". Usa el formato inicio-fin (ej. 2-5).`);
         }
 
         const inicio = parseInt(limites[0], 10);
         const fin = parseInt(limites[1], 10);
 
         if (inicio < 1 || fin > totalPaginas) {
-          throw new Error(`El rango "${parte}" está fuera de límites (el PDF tiene ${totalPaginas} páginas).`);
+          throw new LimiteError(`El rango "${parte}" está fuera de límites (el PDF tiene ${totalPaginas} páginas).`);
         }
         if (inicio > fin) {
-          throw new Error(`En "${parte}", la página inicial (${inicio}) no puede ser mayor que la final (${fin}).`);
+          throw new LimiteError(`En "${parte}", la página inicial (${inicio}) no puede ser mayor que la final (${fin}).`);
         }
 
         for (let p = inicio; p <= fin; p++) {
@@ -485,12 +507,12 @@
         }
       } else {
         if (!/^\d+$/.test(parte)) {
-          throw new Error(`Valor inválido "${parte}". Solo se permiten números y guiones.`);
+          throw new LimiteError(`Valor inválido "${parte}". Solo se permiten números y guiones.`);
         }
 
         const pagina = parseInt(parte, 10);
         if (pagina < 1 || pagina > totalPaginas) {
-          throw new Error(`La página ${pagina} no existe (el PDF tiene ${totalPaginas} páginas).`);
+          throw new LimiteError(`La página ${pagina} no existe (el PDF tiene ${totalPaginas} páginas).`);
         }
 
         indicesSet.add(pagina - 1);
@@ -498,7 +520,7 @@
     }
 
     if (indicesSet.size === 0) {
-      throw new Error('No se encontraron páginas válidas en el rango ingresado.');
+      throw new LimiteError('No se encontraron páginas válidas en el rango ingresado.');
     }
 
     return Array.from(indicesSet);
@@ -630,6 +652,7 @@
     const nombreBase = sanitizarNombreArchivo(file.name, 'documento');
 
     setButtonLoading(btnDividir, true, 'Procesando...', 'Dividir archivo');
+    bloquearDividir(true);
     setStatusDividir('Extrayendo y optimizando páginas...', 'loading');
     await esperarRenderizado();
 
@@ -654,7 +677,8 @@
         }
 
         const Zip = window.JSZip;
-        const zip = Zip ? new Zip() : null;
+        if (!Zip) throw new LimiteError('No se pudo cargar la librería JSZip. Revisa tu conexión.');
+        const zip = new Zip();
 
         for (let i = 0; i < totalPaginas; i++) {
           setStatusDividir(`Generando página ${i + 1} de ${totalPaginas}...`, 'loading');
@@ -665,22 +689,22 @@
           pdfPagina.addPage(paginaCopiada);
 
           const pdfBytes = await guardarPDFOptimizado(pdfPagina);
-          if (zip) zip.file(`${nombreBase}-pagina-${i + 1}.pdf`, pdfBytes);
-          else descargarPDF(pdfBytes, `${nombreBase}-pagina-${i + 1}.pdf`);
+          zip.file(`${nombreBase}-pagina-${i + 1}.pdf`, pdfBytes);
         }
 
-        if (zip) {
-          setStatusDividir('Empaquetando archivos en un ZIP...', 'loading');
-          await esperarRenderizado();
-          descargarBlob(await zip.generateAsync({ type: 'blob' }), `${nombreBase}-paginas.zip`);
-          setStatusDividir(`¡Listo! Se descargó un ZIP con ${totalPaginas} archivos.`);
-        } else {
-          setStatusDividir(`¡Listo! Se descargaron ${totalPaginas} archivos individuales.`);
-        }
+        setStatusDividir('Empaquetando archivos en un ZIP...', 'loading');
+        await esperarRenderizado();
+        descargarBlob(await zip.generateAsync({ type: 'blob' }), `${nombreBase}-paginas.zip`);
+        setStatusDividir(`¡Listo! Se descargó un ZIP con ${totalPaginas} archivos.`);
       }
     } catch (error) {
-      setStatusDividir(error.message || 'Ocurrió un error al dividir el archivo.', 'error');
+      console.error('Error al dividir PDF:', error);
+      setStatusDividir(
+        error instanceof LimiteError ? error.message : 'Ocurrió un error al dividir el archivo.',
+        'error'
+      );
     } finally {
+      bloquearDividir(false);
       setButtonLoading(btnDividir, false, '', 'Dividir archivo');
       btnDividir.disabled = !estadoDividir.file;
     }
@@ -689,7 +713,7 @@
   // ==========================================================
   // 3. COMPRIMIR PDF
   // ==========================================================
-  const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const PDFJS_WORKER_URL = '/vendor/pdf.worker.min.js';
   const NIVELES_COMPRESION = {
     baja: { escala: 2, calidad: 0.8 },
     media: { escala: 1.5, calidad: 0.65 },
@@ -703,6 +727,13 @@
 
   let archivoComprimir = null;
   let workerBlobUrl = null;
+
+  function bloquearComprimir(valor) {
+    inputComprimir.disabled = valor;
+    listComprimir.inert = valor;
+    const opciones = document.querySelector('#panel-comprimir .options');
+    if (opciones) opciones.disabled = valor;
+  }
 
   function setStatusComprimir(mensaje, tipo = 'normal') {
     asignarTextoSeguro(statusComprimir, mensaje, 260);
@@ -800,6 +831,7 @@
     const nombreBase = sanitizarNombreArchivo(archivo.name, 'documento');
 
     setButtonLoading(btnComprimir, true, 'Comprimiendo...', 'Comprimir archivo');
+    bloquearComprimir(true);
     setStatusComprimir('Preparando compresión...', 'loading');
     await esperarRenderizado();
 
@@ -809,7 +841,7 @@
     try {
       const lib = await prepararPdfJs();
       const datos = new Uint8Array(await archivo.arrayBuffer());
-      pdfjsDoc = await lib.getDocument({ data: datos }).promise;
+      pdfjsDoc = await lib.getDocument({ data: datos, isEvalSupported: false }).promise;
 
       const total = pdfjsDoc.numPages;
       if (total > LIMITES_SEGURIDAD.MAX_PAGINAS_COMPRIMIR) {
@@ -827,7 +859,11 @@
 
         const pagina = await pdfjsDoc.getPage(i);
         const base = pagina.getViewport({ scale: 1 });
-        const vista = pagina.getViewport({ scale: escala });
+        const escalaEf = Math.min(
+          escala,
+          Math.sqrt(LIMITES_SEGURIDAD.MAX_PIXELES_CANVAS / (base.width * base.height))
+        );
+        const vista = pagina.getViewport({ scale: escalaEf });
 
         canvas.width = Math.ceil(vista.width);
         canvas.height = Math.ceil(vista.height);
@@ -850,7 +886,9 @@
 
       if (pdfBytes.byteLength >= archivo.size) {
         setStatusComprimir(
-          'No se descargó nada: el resultado no sería más pequeño que el original. Prueba con el nivel Alta.',
+          nivel === 'alta'
+            ? 'No se descargó nada: el resultado no sería más pequeño que el original. Este PDF ya está optimizado.'
+            : 'No se descargó nada: el resultado no sería más pequeño que el original. Prueba con el nivel Alta.',
           'error'
         );
         return;
@@ -873,8 +911,31 @@
       canvas.width = 0;
       canvas.height = 0;
       if (pdfjsDoc) pdfjsDoc.destroy();
+      bloquearComprimir(false);
       setButtonLoading(btnComprimir, false, '', 'Comprimir archivo');
       btnComprimir.disabled = !archivoComprimir;
     }
+  });
+
+  // ==========================================================
+  // Extras de interfaz
+  // ==========================================================
+  inputRango.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !btnDividir.disabled) {
+      e.preventDefault();
+      btnDividir.click();
+    }
+  });
+
+  document.querySelectorAll('.dropzone').forEach((zona) => {
+    const activar = (e) => { e.preventDefault(); zona.classList.add('is-dragover'); };
+    const desactivar = (e) => {
+      if (e.type === 'dragleave' && zona.contains(e.relatedTarget)) return;
+      zona.classList.remove('is-dragover');
+    };
+    zona.addEventListener('dragenter', activar);
+    zona.addEventListener('dragover', activar);
+    zona.addEventListener('dragleave', desactivar);
+    zona.addEventListener('drop', desactivar);
   });
 })();
